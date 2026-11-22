@@ -56,10 +56,21 @@ ecozoneLabels <- function(local, national) {
 
 provinceAbbrev <- c(`British Columbia` = "BC", Alberta = "AB")
 
+## Province and territory boundaries: GADM 4.1, level 1 (field NAME_1, e.g. "British Columbia").
+## The file and folder are the ones geodata::gadm("CAN", level = 1, path = destinationPath) uses,
+## so a copy it downloaded is reused, but prepInputs() stops with a download error when the server
+## cannot be reached (geodata::gadm() returned NULL there).
+provincesCAN <- function(destinationPath,
+                         url = "https://geodata.ucdavis.edu/gadm/gadm4.1/pck/gadm41_CAN_1_pk.rds") {
+  reproducible::prepInputs(url = url, targetFile = basename(url),
+                           destinationPath = file.path(destinationPath, "gadm"),
+                           fun = "terra::readRDS", verbose = -1)
+}
+
 ## The ecoregionLayer (sf): one polygon per label on the grid of rasterToMatch.
 localEcozones <- function(rasterToMatch, destinationPath, bcLevel = "ZONE", abLevel = "NSRNAME") {
   aoi <- terra::as.polygons(terra::ext(rasterToMatch), crs = terra::crs(rasterToMatch))
-  provinces <- geodata::gadm("CAN", level = 1, path = destinationPath)
+  provinces <- provincesCAN(destinationPath)
   provinces <- terra::project(provinces, terra::crs(rasterToMatch))
   provinces <- provinces[terra::relate(provinces, aoi, "intersects")[, 1]]
   provR <- reproducible::postProcessTo(provinces, rasterToMatch, rasterize = list(field = "NAME_1"),
